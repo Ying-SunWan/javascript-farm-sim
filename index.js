@@ -1,9 +1,10 @@
 const offset = {
     x: -285,
-    y: -1100
+    y: -1350
 }
-const step = 3
+const step = 5
 const mapWidth = 89
+const mapHeight = 51
 
 var dimension = [document.documentElement.clientWidth, document.documentElement.clientHeight];
 const canvas = document.querySelector('canvas')
@@ -12,9 +13,13 @@ canvas.height = dimension[1]
 
 const context = canvas.getContext('2d')
 
+// Boundary Maps
+
 const collisionMap = []
-for (let i =0; i < collisions.length; i += mapWidth) {
+const flowerMap = []
+for (let i =0; i < mapHeight * mapWidth; i += mapWidth) {
     collisionMap.push(collisions.slice(i, mapWidth+i))
+    flowerMap.push(flowers.slice(i, mapWidth+i))
 }
 
 const boundaries = []
@@ -32,23 +37,27 @@ collisionMap.forEach((row, i) => {
     })
 })
 
-const mapImage = new Image()
-mapImage.src = './img/map.png'
+const flowerImages = []
+flowerMap.forEach((row, i) => {
+    row.forEach((symbol, j) => {
+        if (symbol != 0) {
+            flowerImages.push(new Boundary({
+                position: {
+                    x: j * Boundary.width + offset.x,
+                    y: i * Boundary.height + offset.y
+                },
+                val: symbol - 2910,
+                image: {
+                    image: flowerImage,
+                    rows: 15,
+                    cols: 5
+                }
+            }))
+        }
+    })
+})
 
-const playerUpImage = new Image()
-playerUpImage.src = './img/playerUp.png'
-
-const playerDownImage = new Image()
-playerDownImage.src = './img/playerDown.png'
-
-const playerLeftImage = new Image()
-playerLeftImage.src = './img/playerLeft.png'
-
-const playerRightImage = new Image()
-playerRightImage.src = './img/playerRight.png'
-
-const foregroundImage = new Image()
-foregroundImage.src = './img/foreground.png'
+// Create Sprites 
 
 const background = new Sprite({
     position: {
@@ -57,7 +66,6 @@ const background = new Sprite({
     },
     image: mapImage,
 })
-
 const foreground = new Sprite({
     position: {
         x: offset.x,
@@ -65,7 +73,6 @@ const foreground = new Sprite({
     },
     image: foregroundImage,
 })
-
 const player = new Sprite({
     position: {
         x: canvas.width / 2 - 768 / 8, 
@@ -84,158 +91,80 @@ const player = new Sprite({
     }
 })
 
-const keys = {
-    w: {
-        pressed: false
-    },
-    a: {
-        pressed: false
-    },
-    s: {
-        pressed: false
-    },
-    d: {
-        pressed: false
-    }
-}
+// Create Keys
 
-const movables = [background, ...boundaries, foreground]
+wKey = new MoveKey({
+    step: {
+        x: 0,
+        y: step
+    },
+    sprite: player.sprites.up
+})
+aKey = new MoveKey({
+    step: {
+        x: step,
+        y: 0
+    },
+    sprite: player.sprites.left
+})
+sKey = new MoveKey({
+    step: {
+        x: 0,
+        y: -1 * step
+    },
+    sprite: player.sprites.down
+})
+dKey = new MoveKey({
+    step: {
+        x: -1 * step,
+        y: 0
+    },
+    sprite: player.sprites.right
+})
 
-function rectangularCollision({rectangle1, rectangle2}) {
-    let xMargin = 1
-    let yMargin = 2
-    if (rectangle2.val === 1138) {
-        xMargin = 2
-        yMargin = 4
-    }
-    return(
-        rectangle1.position.x + rectangle1.width / xMargin - 6 >= rectangle2.position.x && 
-        rectangle1.position.x <= rectangle2.position.x + rectangle2.width / xMargin - 6 && 
-        rectangle1.position.y <= rectangle2.position.y + rectangle2.height / yMargin &&
-        rectangle1.position.y + rectangle1.height / yMargin >= rectangle2.position.y
-    )
-}
+// Animate
 
+const movables = [background, ...boundaries, foreground, ...flowerImages]
 function animate() {
     window.requestAnimationFrame(animate)
-
+    
     background.draw()
-    boundaries.forEach((boundary) => {
-        boundary.draw()
-    })
     player.draw()
     foreground.draw()
 
-    let moving = true
-    player.moving = false
-    if (keys.w.pressed && lastkey === 'w') {
-        player.moving = true
-        player.image = player.sprites.up
-        for (let i = 0; i < boundaries.length; i++) {
-            const boundary = boundaries[i]
-            if (
-                rectangularCollision({
-                    rectangle1: player,
-                    rectangle2: {
-                        ...boundary,
-                        position: {
-                            x: boundary.position.x,
-                            y: boundary.position.y + step
-                        },
-                        val: boundary.val
-                    }
-                })
-            ) {
-                moving = false
-                break
-            }
+    let numBoundaries = 0 
+    for (let i = 0; i < boundaries.length; i++) {
+        const boundary = boundaries[i]
+        if (boundary.val === 1026) numBoundaries++
+        if (player.position.y <= boundary.position.y) {
+            flowerImages.slice(i - numBoundaries + 1).forEach(flower => flower.draw())
         }
+    }
 
-        if (moving) {
+    player.moving = false
+    if (wKey.pressed && lastkey === 'w') {
+        if (wKey.move()) {
             movables.forEach((movable) => {
                 movable.position.y += step
             })
         }
     }
-    else if (keys.a.pressed  && lastkey === 'a') {
-        player.moving = true
-        player.image = player.sprites.left
-        for (let i = 0; i < boundaries.length; i++) {
-            const boundary = boundaries[i]
-            if (
-                rectangularCollision({
-                    rectangle1: player,
-                    rectangle2: {
-                        ...boundary,
-                        position: {
-                            x: boundary.position.x + step,
-                            y:boundary.position.y 
-                        }
-                    }
-                })
-            ) {
-                moving = false
-                break
-            }
-        }
-        
-        if (moving) {
+    else if (aKey.pressed  && lastkey === 'a') {
+        if (aKey.move()) {
             movables.forEach((movable) => {
                 movable.position.x += step
             })
         }
     }
-    else if (keys.s.pressed && lastkey === 's') {
-        player.moving = true
-        player.image = player.sprites.down
-        for (let i = 0; i < boundaries.length; i++) {
-            const boundary = boundaries[i]
-            if (
-                rectangularCollision({
-                    rectangle1: player,
-                    rectangle2: {
-                        ...boundary,
-                        position: {
-                            x: boundary.position.x,
-                            y:boundary.position.y - step
-                        }
-                    }
-                })
-            ) {
-                moving = false
-                break
-            }
-        }
-        
-        if (moving) {
+    else if (sKey.pressed && lastkey === 's') {
+        if (sKey.move()) {
             movables.forEach((movable) => {
                 movable.position.y -= step
             })
         }
     }
-    else if (keys.d.pressed && lastkey === 'd') {
-        player.moving = true
-        player.image = player.sprites.right
-        for (let i = 0; i < boundaries.length; i++) {
-            const boundary = boundaries[i]
-            if (
-                rectangularCollision({
-                    rectangle1: player,
-                    rectangle2: {
-                        ...boundary,
-                        position: {
-                            x: boundary.position.x - step,
-                            y:boundary.position.y
-                        }
-                    }
-                })
-            ) {
-                moving = false
-                break
-            }
-        }
-        
-        if (moving) {
+    else if (dKey.pressed && lastkey === 'd') {
+        if (dKey.move()) {
             movables.forEach((movable) => {
                 movable.position.x -= step
             })
@@ -244,43 +173,3 @@ function animate() {
 }
 
 animate()
-
-let lastkey = ''
-window.addEventListener('keydown', (e) => {
-    switch (e.key) {
-        case 'w':
-            keys.w.pressed = true
-            lastkey = 'w'
-            break
-        case 'a':
-            keys.a.pressed = true
-            lastkey = 'a'
-            break
-        case 's':
-            keys.s.pressed = true
-            lastkey = 's'
-            break
-        case 'd':
-            keys.d.pressed = true
-            lastkey = 'd'
-            break
-    }
-})
-
-window.addEventListener('keyup', (e) => {
-    switch (e.key) {
-        case 'w':
-            keys.w.pressed = false
-            break
-        case 'a':
-            keys.a.pressed = false
-            break
-        case 's':
-            keys.s.pressed = false
-            break
-        case 'd':
-            keys.d.pressed = false
-            break
-    }
-    player.frames.val = 0
-})

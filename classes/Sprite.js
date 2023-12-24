@@ -30,8 +30,8 @@ class Sprite {
             this.image.height, 
             this.position.x,
             this.position.y,
-            this.image.width / (this.frames.max * this.ratio), 
-            this.image.height / this.ratio, 
+            this.width, 
+            this.height
         )
 
         if (!this.moving) return 
