@@ -1,9 +1,9 @@
 const offset = {
-    x: -285,
-    y: -1350
+    x: -1150,
+    y: -700
 }
 const step = 5
-const mapWidth = 89
+const mapWidth = 64
 const mapHeight = 51
 
 var dimension = [document.documentElement.clientWidth, document.documentElement.clientHeight];
@@ -46,7 +46,7 @@ flowerMap.forEach((row, i) => {
                     x: j * Boundary.width + offset.x,
                     y: i * Boundary.height + offset.y
                 },
-                val: symbol - 2910,
+                val: symbol - 1825,
                 image: {
                     image: flowerImage,
                     rows: 15,
@@ -135,7 +135,7 @@ function animate() {
     let numBoundaries = 0 
     for (let i = 0; i < boundaries.length; i++) {
         const boundary = boundaries[i]
-        if (boundary.val === 1026) numBoundaries++
+        if (boundary.val === hardBoundsIndicator) numBoundaries++
         if (player.position.y <= boundary.position.y) {
             flowerImages.slice(i - numBoundaries + 1).forEach(flower => flower.draw())
         }
